@@ -8,7 +8,7 @@ import nni
 
 
 class SimpleParam:
-    def __init__(self, local_dir: str = '/home/wangtianao/projects/Alpha-GCL/param', default: Optional[dict] = None):
+    def __init__(self, local_dir: str = 'ConGCL/param', default: Optional[dict] = None):
         if default is None:
             default = dict()
 

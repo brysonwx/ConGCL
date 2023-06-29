@@ -180,7 +180,7 @@ if __name__ == '__main__':
     parser.add_argument('--hidden_size', type=int, help='hidden size', default=32)
     parser.add_argument('--rm_2sim', type=int, help='rm 2sim for ablation study', default=0)
     parser.add_argument('--rm_alpha', type=int, help='rm alpha for ablation study', default=0)
-    parser.add_argument('--tb_outpath', type=str, default='/home/wangtianao/projects/Alpha-GCL/tb_outpath')
+    # parser.add_argument('--tb_outpath', type=str, default='~/projects/ConGCL/tb_outpath')
                         
     default_param = {
         'learning_rate': 0.01,
