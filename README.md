@@ -144,7 +144,7 @@
   ```
 
 - Notes
-  - the code will download benchmark datasets to `~/datasets`,
+  - The code will download benchmark datasets to `~/datasets`,
     it may fails to download due to network issue.
-  - feel free to put out any issue that you meet with while running the code.
+  - Feel free to put out any issue that you meet with while running the code.
     we will attempt to provide solutions. Thanks.

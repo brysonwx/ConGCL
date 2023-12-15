@@ -1,14 +1,11 @@
-from typing import Any, Optional, Tuple, List
 import torch
-from torch import nn
-import torch.nn.functional as F
-from torch_geometric.nn import GCNConv, global_mean_pool, global_max_pool, global_add_pool, SAGPooling
-import random
 import torch.nn as nn
-from torch.nn import Parameter
+import torch.nn.functional as F
+from typing import Optional, Tuple
 from torch_geometric.nn.inits import reset
 from sklearn.linear_model import LogisticRegression
 from torch_geometric.nn.norm.graph_norm import GraphNorm
+from torch_geometric.nn import GCNConv, global_mean_pool, global_max_pool, global_add_pool, SAGPooling
 
 
 class Encoder(nn.Module):
@@ -30,7 +27,6 @@ class Encoder(nn.Module):
             self.norms.append(GraphNorm(out_channels))
             self.conv = nn.ModuleList(self.conv)
             self.norms = nn.ModuleList(self.norms)
-
             self.activation = activation
         else:
             self.norms = nn.ModuleList()
@@ -42,8 +38,8 @@ class Encoder(nn.Module):
                 self.norms.append(GraphNorm(out_channels))
             self.conv = nn.ModuleList(self.conv)
             self.norms = nn.ModuleList(self.norms)
-
             self.activation = activation
+
 
     def forward(self, x: torch.Tensor, edge_index: torch.Tensor):
         if not self.skip:
@@ -74,17 +70,21 @@ class GRACE(torch.nn.Module):
 
         self.num_hidden = num_hidden
 
+
     def forward(self, x: torch.Tensor, edge_index: torch.Tensor) -> torch.Tensor:
         return self.encoder(x, edge_index)
+
 
     def projection(self, z: torch.Tensor) -> torch.Tensor:
         z = F.elu(self.fc1(z))
         return self.fc2(z)
 
+
     def sim(self, z1: torch.Tensor, z2: torch.Tensor):
         z1 = F.normalize(z1)
         z2 = F.normalize(z2)
         return torch.mm(z1, z2.t())
+
 
     def semi_loss(self, z1: torch.Tensor, z2: torch.Tensor, summary: Tuple, gamma: float, rm_2sim: int):
         f = lambda x: torch.exp(x / self.tau)
@@ -101,8 +101,8 @@ class GRACE(torch.nn.Module):
             ss2 = self.sim(sum1, sum2)
             combined_sim1 = gamma * s1 + (1 - gamma) * ss1
             combined_sim2 = gamma * s2 + (1 - gamma) * ss2
-
             combined_sim3 = gamma * self.sim(z2, z2) + (1 - gamma) * self.sim(sum2, sum2)
+
             sim1 = torch.cat((combined_sim2.t(), combined_sim3), 1)
             sim2 = torch.cat((combined_sim1, combined_sim2), 1)
 
@@ -122,45 +122,6 @@ class GRACE(torch.nn.Module):
                 between_sim.diag() / (refl_sim.sum(1) + between_sim.sum(1) - refl_sim.diag()))
         return res, sim1, sim2
 
-    def batched_semi_loss(self, z1: torch.Tensor, z2: torch.Tensor, batch_size: int):
-        # Space complexity: O(BN) (semi_loss: O(N^2))
-        print('batched_semi_loss')
-        device = z1.device
-        num_nodes = z1.size(0)
-        num_batches = (num_nodes - 1) // batch_size + 1
-        f = lambda x: torch.exp(x / self.tau)
-        indices = torch.arange(0, num_nodes).to(device)
-        idx = torch.randperm(num_nodes)
-        z1 = z1[idx]
-        z2 = z2[idx]
-        losses = []
-        final_sim1 = None
-        final_sim2 = None
-        for i in range(num_batches):
-            mask = indices[i * batch_size:(i + 1) * batch_size]
-            s1 = self.sim(z1[mask], z1[mask])
-            s2 = self.sim(z1[mask], z2[mask])
-            refl_sim = f(s1)  # [B, N]
-            between_sim = f(s2)  # [B, N]
-            losses.append(
-                -torch.log(between_sim.diag() / (refl_sim.sum(1) + between_sim.sum(1) - refl_sim.diag())))
-        
-            # semantic sim
-            s3 = self.sim(z2[mask], z2[mask])
-            sim1 = torch.cat((s2.t(), s3), 1)
-            sim2 = torch.cat((s1, s2), 1)
-            if final_sim1 is None and final_sim2 is None:
-                final_sim1 = sim1
-                final_sim2 = sim2
-            else:
-                if final_sim1.size(0) == sim1.size(0):
-                    final_sim1 = torch.cat((final_sim1, sim1), 1)
-                    final_sim2 = torch.cat((final_sim2, sim2), 1)               
-            # losses.append(-torch.log(between_sim[:, i * batch_size:(i + 1) * batch_size].diag()
-            #                          / (refl_sim.sum(1) + between_sim.sum(1)
-            #                             - refl_sim[:, i * batch_size:(i + 1) * batch_size].diag())))
-        
-        return torch.cat(losses), final_sim1, final_sim2
 
     def loss(self, z1: torch.Tensor, z2: torch.Tensor, _lambda: float, dataset_name: str, epoch: int,
         mean: bool = True, batch_size: Optional[int] = None, summary: Optional[Tuple] = None, gamma: float = 0.9, rm_2sim: int = 0, rm_alpha: int = 0):
@@ -194,9 +155,6 @@ class GRACE(torch.nn.Module):
         if batch_size is None:
             l1, sim1, sim2 = self.semi_loss(h1, h2, res_summary, gamma, rm_2sim)
             l2, _sim1, _sim2 = self.semi_loss(h2, h1, res_summary, gamma, rm_2sim)
-        else:
-            l1, sim1, sim2 = self.batched_semi_loss(h1, h2, batch_size)
-            l2, _sim1, _sim2 = self.batched_semi_loss(h2, h1, batch_size)
 
         ret = (l1 + l2) * 0.5
         ret = ret.mean() if mean else ret.sum()
@@ -210,26 +168,8 @@ class GRACE(torch.nn.Module):
             print('alpha+: {}'.format(alpha_2))
             alpha_criterion = AdaptiveAlphaDivLoss(alpha_1, alpha_2, 5.0)
             alpha_loss = alpha_criterion(_sim1, _sim2)
+
             ret = ret + _lambda * alpha_loss
-        return ret
-
-
-class LogReg(nn.Module):
-    def __init__(self, ft_in, nb_classes):
-        super(LogReg, self).__init__()
-        self.fc = nn.Linear(ft_in, nb_classes)
-
-        for m in self.modules():
-            self.weights_init(m)
-
-    def weights_init(self, m):
-        if isinstance(m, nn.Linear):
-            torch.nn.init.xavier_uniform_(m.weight.data)
-            if m.bias is not None:
-                m.bias.data.fill_(0.0)
-
-    def forward(self, seq):
-        ret = self.fc(seq)
         return ret
 
 
@@ -262,8 +202,8 @@ def f_divergence(q_logits, p_logits, alpha, iw_clip=1e3):
 
 
 """
-It's often necessary to clip the maximum 
-gradient value (e.g., 1.0) when using this adaptive alpha-div loss
+    It's often necessary to clip the maximum 
+    gradient value (e.g., 1.0) when using this adaptive alpha-div loss
 """
 class AdaptiveAlphaDivLoss(torch.nn.modules.loss._Loss):
     def __init__(self, alpha_min=-1.0, alpha_max=1.0, iw_clip=5.0):
@@ -290,7 +230,7 @@ class AdaptiveAlphaDivLoss(torch.nn.modules.loss._Loss):
 
 
 """
-class for subgraph pooling
+    class for subgraph pooling
 """
 class Pool(nn.Module):
     def __init__(self, in_channels, ratio=1.0):
@@ -403,3 +343,22 @@ class Scorer(nn.Module):
     def forward(self, input1, input2):
         output = torch.sigmoid(torch.sum(input1 * torch.matmul(input2, self.weight), dim = -1))
         return output
+
+
+class LogReg(nn.Module):
+    def __init__(self, ft_in, nb_classes):
+        super(LogReg, self).__init__()
+        self.fc = nn.Linear(ft_in, nb_classes)
+
+        for m in self.modules():
+            self.weights_init(m)
+
+    def weights_init(self, m):
+        if isinstance(m, nn.Linear):
+            torch.nn.init.xavier_uniform_(m.weight.data)
+            if m.bias is not None:
+                m.bias.data.fill_(0.0)
+
+    def forward(self, seq):
+        ret = self.fc(seq)
+        return ret

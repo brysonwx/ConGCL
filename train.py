@@ -5,16 +5,14 @@ import random
 import nni
 import torch
 from torch_geometric.data import Data
-from torch_geometric.utils import dropout_adj, degree, to_undirected, add_self_loops, remove_self_loops
+from torch_geometric.utils import dropout_adj, degree, to_undirected, \
+    add_self_loops, remove_self_loops
 from simple_param.sp import SimpleParam
 from pGRACE.model import Encoder, GRACE, SugbCon, Pool, Scorer, SugEncoder
-from pGRACE.functional import drop_feature, drop_edge_weighted, \
-    degree_drop_weights, \
-    evc_drop_weights, pr_drop_weights, \
+from pGRACE.functional import drop_feature, drop_edge_weighted, degree_drop_weights, \
     feature_drop_weights, drop_feature_weighted_2, feature_drop_weights_dense
 from pGRACE.eval import log_regression, MulticlassEvaluator
-from pGRACE.utils import get_base_model, get_activation, \
-    generate_split, compute_pr, eigenvector_centrality, Subgraph
+from pGRACE.utils import get_base_model, get_activation, generate_split, Subgraph
 from pGRACE.dataset import get_dataset
 # from torch.utils.tensorboard import SummaryWriter
 
@@ -23,7 +21,7 @@ def train(param_data, args, epoch):
     model.train()
     optimizer.zero_grad()
 
-    if args.dataset == 'Coauthor-Phy' or args.dataset == 'PubMed':
+    if args.dataset in ('Coauthor-Phy', 'PubMed'):
         idx = torch.randperm(data.x.size(0))[:int(data.x.size(0) * 0.6)].numpy()
         idx_set = {}
         for i, id in enumerate(idx):
@@ -138,6 +136,7 @@ def train(param_data, args, epoch):
     optimizer.step()
 
     return loss.item()
+
 
 def test(final=False):
     model.eval()

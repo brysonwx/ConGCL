@@ -1,18 +1,19 @@
-import numpy as np
-import scipy.sparse as sp
-
+import os
 import torch
+import numpy as np
+from cytoolz import curry
+import multiprocessing as mp
+from scipy import sparse as sp
+from sklearn.preprocessing import normalize, StandardScaler
+from torch_geometric.data import Data, Batch
+import networkx as nx
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.optim import Adam
 from torch.utils.data import random_split
 from torch_geometric.nn import GCNConv, SGConv, SAGEConv, GATConv, GraphConv, GINConv
 from torch_geometric.utils import sort_edge_index, degree, add_remaining_self_loops, remove_self_loops, get_laplacian, \
     to_undirected, to_dense_adj, to_networkx
 from torch_scatter import scatter
-import torch_sparse
-
-import networkx as nx
 
 
 def get_base_model(name: str):
@@ -94,16 +95,6 @@ def generate_split(num_samples: int, train_ratio: float, val_ratio: float):
     val_mask[idx_val] = True
 
     return train_mask, test_mask, val_mask
-
-
-import os 
-import torch
-import numpy as np
-from cytoolz import curry
-import multiprocessing as mp
-from scipy import sparse as sp
-from sklearn.preprocessing import normalize, StandardScaler
-from torch_geometric.data import Data, Batch
 
 
 def standardize(feat, mask):
