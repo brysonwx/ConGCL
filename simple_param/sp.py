@@ -1,10 +1,8 @@
-from typing import Optional
-import os.path as osp
-
+import nni
 import json
 import yaml
-
-import nni
+import os.path as osp
+from typing import Optional
 
 
 class SimpleParam:

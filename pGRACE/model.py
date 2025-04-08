@@ -202,8 +202,7 @@ def f_divergence(q_logits, p_logits, alpha, iw_clip=1e3):
 
 
 """
-    It's often necessary to clip the maximum 
-    gradient value (e.g., 1.0) when using this adaptive alpha-div loss
+    It's often necessary to clip the maximum gradient value (e.g., 1.0) when using this adaptive alpha-div loss
 """
 class AdaptiveAlphaDivLoss(torch.nn.modules.loss._Loss):
     def __init__(self, alpha_min=-1.0, alpha_max=1.0, iw_clip=5.0):

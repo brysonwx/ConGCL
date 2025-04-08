@@ -1,19 +1,38 @@
 import os
 import torch
+import logging
 import numpy as np
 from cytoolz import curry
 import multiprocessing as mp
 from scipy import sparse as sp
-from sklearn.preprocessing import normalize, StandardScaler
-from torch_geometric.data import Data, Batch
 import networkx as nx
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.utils.data import random_split
-from torch_geometric.nn import GCNConv, SGConv, SAGEConv, GATConv, GraphConv, GINConv
-from torch_geometric.utils import sort_edge_index, degree, add_remaining_self_loops, remove_self_loops, get_laplacian, \
-    to_undirected, to_dense_adj, to_networkx
+from sklearn.preprocessing import normalize, StandardScaler
 from torch_scatter import scatter
+from torch.utils.data import random_split
+from torch_geometric.data import Data, Batch
+from torch_geometric.nn import GCNConv, SGConv, SAGEConv, GATConv, GraphConv, GINConv
+from torch_geometric.utils import sort_edge_index, degree, \
+    add_remaining_self_loops, remove_self_loops, get_laplacian, to_undirected, to_dense_adj, to_networkx
+
+
+def setup_logger(log_file_name):
+    log_dir = "./logs"
+    logger = logging.getLogger()
+    logger.setLevel(logging.INFO)
+    log_file_path = os.path.join(log_dir, log_file_name)
+    file_handler = logging.FileHandler(log_file_path, mode='a')
+    file_handler.setLevel(logging.INFO)
+    file_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
+
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(logging.INFO)
+    console_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
+
+    logger.addHandler(file_handler)
+    logger.addHandler(console_handler)
+    return logger
 
 
 def get_base_model(name: str):

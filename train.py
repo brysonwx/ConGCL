@@ -1,20 +1,18 @@
-from typing import Tuple
-import argparse
-import os.path as osp
-import random
 import nni
+import random
 import torch
-from torch_geometric.data import Data
-from torch_geometric.utils import dropout_adj, degree, to_undirected, \
-    add_self_loops, remove_self_loops
+import argparse
+import numpy as np
+import os.path as osp
 from simple_param.sp import SimpleParam
+from pGRACE.dataset import get_dataset
 from pGRACE.model import Encoder, GRACE, SugbCon, Pool, Scorer, SugEncoder
 from pGRACE.functional import drop_feature, drop_edge_weighted, degree_drop_weights, \
     feature_drop_weights, drop_feature_weighted_2, feature_drop_weights_dense
 from pGRACE.eval import log_regression, MulticlassEvaluator
-from pGRACE.utils import get_base_model, get_activation, generate_split, Subgraph
-from pGRACE.dataset import get_dataset
-# from torch.utils.tensorboard import SummaryWriter
+from pGRACE.utils import get_base_model, get_activation, generate_split, Subgraph, setup_logger
+from torch_geometric.data import Data
+from torch_geometric.utils import dropout_adj, degree, to_undirected, add_self_loops, remove_self_loops
 
 
 def train(param_data, args, epoch):
@@ -161,12 +159,11 @@ def test(final=False):
     return acc
 
 
-if __name__ == '__main__':
+def get_parser():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--device', type=str, default='cuda:1')
+    parser.add_argument('--device', type=str, default='cuda:0')
     parser.add_argument('--dataset', type=str)
     parser.add_argument('--param', type=str)
-    # 39788
     parser.add_argument('--seed', type=int, default=39788)
     parser.add_argument('--verbose', type=str, default='train,eval,final')
     parser.add_argument('--save_split', type=str, nargs='?')
@@ -179,8 +176,21 @@ if __name__ == '__main__':
     parser.add_argument('--hidden_size', type=int, help='hidden size', default=32)
     parser.add_argument('--rm_2sim', type=int, help='rm 2sim for ablation study', default=0)
     parser.add_argument('--rm_alpha', type=int, help='rm alpha for ablation study', default=0)
-    # parser.add_argument('--tb_outpath', type=str, default='~/projects/ConGCL/tb_outpath')
-                        
+
+    return parser
+
+
+def seed_everything(seed: int):
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = True
+
+
+if __name__ == '__main__':
+    parser = get_parser()
     default_param = {
         'learning_rate': 0.01,
         'num_hidden': 256,
@@ -204,6 +214,9 @@ if __name__ == '__main__':
         parser.add_argument(f'--{key}', type=type(default_param[key]), nargs='?')
     args = parser.parse_args()
 
+    logger = setup_logger(f'{args.dataset}.log')
+    logger.info(f'args: {args}')
+
     # parse param
     sp = SimpleParam(default=default_param)
     param = sp(source=args.param, preprocess='nni')
@@ -213,17 +226,14 @@ if __name__ == '__main__':
         if getattr(args, key) is not None:
             param[key] = getattr(args, key)
 
+    logger.info(f'param: {param}')
+
     use_nni = args.param == 'nni'
     if use_nni and args.device != 'cpu':
         args.device = 'cuda'
 
     torch_seed = args.seed
-    torch.manual_seed(torch_seed)
-    random.seed(torch_seed)
-
-    # import os
-    # os.makedirs(args.tb_outpath, exist_ok=True)
-    # tb_writer = SummaryWriter(args.tb_outpath)
+    seed_everything(torch_seed)
 
     device = torch.device(args.device)
 
@@ -244,7 +254,9 @@ if __name__ == '__main__':
 
     encoder = Encoder(dataset.num_features, param['num_hidden'], get_activation(param['activation']),
                       base_model=get_base_model(param['base_model']), k=param['num_layers']).to(device)
+
     model = GRACE(encoder, param['num_hidden'], param['num_proj_hidden'], param['tau']).to(device)
+
     optimizer = torch.optim.Adam(
         model.parameters(),
         lr=param['learning_rate'],
@@ -271,15 +283,15 @@ if __name__ == '__main__':
     for epoch in range(1, param['num_epochs'] + 1):
         loss = train(param, args, epoch)
         if 'train' in log:
-            print(f'(T) | Epoch={epoch:03d}, loss={loss:.4f}')
+            logger.info(f'(Train) | Epoch={epoch:03d}, loss={loss:.4f}')
 
         if epoch % 100 == 0:
             acc = test()
 
             if 'eval' in log:
-                print(f'(E) | Epoch={epoch:04d}, avg_acc = {acc}')
+                logger.info(f'(Eval) | Epoch={epoch:04d}, avg_acc = {acc}')
 
     acc = test(final=True)
 
     if 'final' in log:
-        print(f'{acc}')
+        logger.info(f'final testing acc: {acc}')

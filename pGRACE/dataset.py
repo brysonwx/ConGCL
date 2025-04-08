@@ -1,9 +1,8 @@
 import os.path as osp
-
-from torch_geometric.datasets import Planetoid, CitationFull, WikiCS, Coauthor, Amazon
-import torch_geometric.transforms as T
-
 from ogb.nodeproppred import PygNodePropPredDataset
+import torch_geometric.transforms as T
+from torch_geometric.datasets import Planetoid, CitationFull, WikiCS, Coauthor, Amazon
+
 
 def get_dataset(path, name):
     assert name in ['Cora', 'CiteSeer', 'PubMed', 'DBLP', 'Karate', 'WikiCS', 'Coauthor-CS', 'Coauthor-Phy',

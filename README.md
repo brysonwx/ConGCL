@@ -1,4 +1,4 @@
-This code is just a demo version.
+This code is a demo version of ConGCL.
 
 ###For running the code
 - provide necessary env
@@ -145,8 +145,7 @@ This code is just a demo version.
     python train.py --device cuda:0 --dataset Coauthor-Phy --param local:coauthor_phy.json --drop_scheme degree --mu 4 --gamma 0.95 --ppr_base_path <path_to_code>/ConGCL/pGRACE/subgraph --rm_alpha 1
   ```
 
-- Notes
+- NOTE
   - The code will download benchmark datasets to `~/datasets`,
     it may fails to download due to network issue.
-  - Feel free to put out any issue that you meet with while running the code.
-    we will attempt to provide solutions. Thanks.
+  - Feel free to contact me if you have any questions while running the code.

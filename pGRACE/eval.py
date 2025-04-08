@@ -1,9 +1,7 @@
-from typing import Optional
-
 import torch
-from torch.optim import Adam
 import torch.nn as nn
-
+from torch.optim import Adam
+from typing import Optional
 from pGRACE.model import LogReg
 
 
