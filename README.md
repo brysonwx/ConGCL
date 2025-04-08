@@ -1,10 +1,11 @@
-This code is a demo version of ConGCL.
+# ConGCL
+This is the demo official PyTorch implementation of the paper: **[Improving Augmentation Consistency for Graph Contrastive Learning](https://www.sciencedirect.com/science/article/abs/pii/S0031320323008798)** (Pattern Recognition'2024).
 
-###For running the code
-- provide necessary env
-  - running on RTX 3090, 24GB; CUDA 11.3.
+## Guide for the start-up
+- provide necessary running environments
+  - running on RTX 3090, 24GB; CUDA 11.3;
 
-  - install necessary packages, e.g., torch, etc.
+  - install necessary Python packages, e.g., pytorch, pyg, etc;
     
     (1) conda create -n ConGCL python==3.8
   
@@ -22,12 +23,12 @@ This code is a demo version of ConGCL.
 
   - config some custom paths.
   
-    (1) for simple_param/sp.py, modify the `local_dir` according to your local env; 
+    (1) for `simple_param/sp.py`, modify the `local_dir` according to your local env; 
         e.g., `<path_to_code>/ConGCL/param`.
 
-    (2) for train.py, please remember provide the `ppr_base_path` in your arguments 
+    (2) for `train.py`, please remember provide the `ppr_base_path` in your arguments
         in the purpose of storing the ppr scores. e.g., `<path_to_code>/ConGCL/pGRACE/subgraph`.
-    Note: <path_to_code> denotes the path of ConGCL dir.
+    NOTE: <path_to_code> denotes the path of ConGCL dir.
 
 - running the code over different datasets.
 
@@ -146,6 +147,5 @@ This code is a demo version of ConGCL.
   ```
 
 - NOTE
-  - The code will download benchmark datasets to `~/datasets`,
-    it may fails to download due to network issue.
+  - The code will download benchmark datasets to `~/datasets`, it may fail to download due to network issue;
   - Feel free to contact me if you have any questions while running the code.
